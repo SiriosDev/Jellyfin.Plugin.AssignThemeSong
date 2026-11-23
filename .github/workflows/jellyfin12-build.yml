@@ -36,6 +36,24 @@ jobs:
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "DOTNET_VERSION=$DOTNET_VERSION" >> "$GITHUB_ENV"
 
+      - name: Resolve tag changelog
+        shell: bash
+        run: |
+          TAG_MESSAGE=""
+          if [[ "$(git cat-file -t "$TAG")" == "tag" ]]; then
+            TAG_MESSAGE="$(git cat-file tag "$TAG" | sed '1,/^$/d' | sed '/^-----BEGIN PGP SIGNATURE-----$/,$d' | sed '1{/^[[:space:]]*$/d;}')"
+            TAG_MESSAGE="$(printf '%s' "$TAG_MESSAGE" | sed -e 's/[[:space:]]*$//' -e 's/^[[:space:]]*$//')"
+          fi
+
+          if [[ -n "$TAG_MESSAGE" ]]; then
+            DELIMITER="TAG_CHANGELOG_$(openssl rand -hex 16)"
+            echo "TAG_CHANGELOG<<$DELIMITER" >> "$GITHUB_ENV"
+            printf '%s\n' "$TAG_MESSAGE" >> "$GITHUB_ENV"
+            echo "$DELIMITER" >> "$GITHUB_ENV"
+          else
+            echo "TAG_CHANGELOG=" >> "$GITHUB_ENV"
+          fi
+
       - name: Update plugin versions
         shell: bash
         run: |
@@ -61,6 +79,9 @@ jobs:
           meta_path = Path("meta.json")
           meta = json.loads(meta_path.read_text(encoding="utf-8-sig"))
           meta["version"] = dotnet_version
+          tag_changelog = os.environ.get("TAG_CHANGELOG", "").strip()
+          if tag_changelog:
+              meta["changelog"] = tag_changelog
           meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
           print(f"Plugin version: {dotnet_version}")
@@ -89,7 +110,11 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$ASSET" --clobber
           else
-            gh release create "$TAG" "$ASSET" --title "xThemeSong ${VERSION} - Jellyfin 12" --generate-notes
+            if [[ -n "$TAG_CHANGELOG" ]]; then
+              gh release create "$TAG" "$ASSET" --title "xThemeSong ${VERSION} - Jellyfin 12" --notes "$TAG_CHANGELOG"
+            else
+              gh release create "$TAG" "$ASSET" --title "xThemeSong ${VERSION} - Jellyfin 12" --generate-notes
+            fi
           fi
 
       - name: Update manifest
@@ -111,7 +136,7 @@ jobs:
           entry = {
               "version": dotnet_version,
               "checksum": checksum,
-              "changelog": f"{tag}: Jellyfin 12 release.",
+              "changelog": os.environ.get("TAG_CHANGELOG", "").strip(),
               "targetAbi": "12.0.0.0",
               "sourceUrl": f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{tag}/xThemeSong_{tag}.zip"
           }

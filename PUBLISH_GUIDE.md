@@ -20,6 +20,18 @@ git push origin v1.4.24
 The workflow converts `v1.4.24` to assembly version `1.4.24.0`, builds the
 plugin, creates or updates the GitHub release, and updates `manifest.json`.
 
+For the changelog, create an annotated tag whose message contains the release
+notes. Multiline tag messages are preserved as written:
+
+```powershell
+git tag -a v1.4.24 -m "Fix X" -m "Improve Y"
+git push origin v1.4.24
+```
+
+The tag message is used for `meta.json`, `manifest.json`, and the GitHub release
+notes. Lightweight tags or annotated tags with no message keep the existing
+release behavior and do not add extra changelog text.
+
 ### Files to Update:
 1. `Jellyfin.Plugin.AssignThemeSong.csproj` - Version numbers + package references
 2. `meta.json` - Plugin version and changelog
