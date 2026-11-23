@@ -2,7 +2,8 @@ name: Jellyfin 12 build and release
 
 on:
   push:
-    branches: [main]
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
@@ -12,9 +13,58 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
+
+      - name: Resolve release version
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid release tag: $TAG"
+            echo "Expected a tag in the form vX.Y.Z"
+            exit 1
+          fi
+
+          DOTNET_VERSION="${VERSION}.0"
+
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "DOTNET_VERSION=$DOTNET_VERSION" >> "$GITHUB_ENV"
+
+      - name: Update plugin versions
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import re
+          import os
+          from pathlib import Path
+
+          version = os.environ["VERSION"]
+          dotnet_version = os.environ["DOTNET_VERSION"]
+
+          csproj = Path("Jellyfin.Plugin.AssignThemeSong.csproj")
+          text = csproj.read_text(encoding="utf-8")
+          for property_name in ("Version", "AssemblyVersion", "FileVersion"):
+              pattern = rf"<{property_name}>[^<]*</{property_name}>"
+              replacement = f"<{property_name}>{dotnet_version}</{property_name}>"
+              text, count = re.subn(pattern, replacement, text)
+              if count != 1:
+                  raise RuntimeError(f"Expected one <{property_name}> in {csproj}")
+          csproj.write_text(text, encoding="utf-8")
+
+          meta_path = Path("meta.json")
+          meta = json.loads(meta_path.read_text(encoding="utf-8-sig"))
+          meta["version"] = dotnet_version
+          meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+          print(f"Plugin version: {dotnet_version}")
+          PY
 
       - name: Build
         run: dotnet build Jellyfin.Plugin.AssignThemeSong.csproj --configuration Release
@@ -26,16 +76,17 @@ jobs:
           mkdir package
           cp -a bin/Release/net10.0/. package/
           cd package
-          zip -r ../xThemeSong_v1.4.23.zip .
+          zip -r "../xThemeSong_${TAG}.zip" .
 
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if gh release view v1.4.23 >/dev/null 2>&1; then
-            gh release upload v1.4.23 xThemeSong_v1.4.23.zip --clobber
+          ASSET="xThemeSong_${TAG}.zip"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ASSET" --clobber
           else
-            gh release create v1.4.23 xThemeSong_v1.4.23.zip --title "xThemeSong 1.4.23 - Jellyfin 12" --notes "Add matching pagination controls to the bottom of the Media Library tab for easier navigation."
+            gh release create "$TAG" "$ASSET" --title "xThemeSong ${VERSION} - Jellyfin 12" --generate-notes
           fi
 
       - name: Update manifest
@@ -43,38 +94,31 @@ jobs:
         run: |
           python3 - <<'PY'
           import hashlib, json
+          import os
           from pathlib import Path
 
-          asset = Path("xThemeSong_v1.4.23.zip")
+          tag = os.environ["TAG"]
+          version = os.environ["VERSION"]
+          dotnet_version = os.environ["DOTNET_VERSION"]
+          asset = Path(f"xThemeSong_{tag}.zip")
           checksum = hashlib.md5(asset.read_bytes()).hexdigest().upper()
           path = Path("manifest.json")
           data = json.loads(path.read_text(encoding="utf-8-sig"))
 
           entry = {
-              "version": "1.4.23.0",
+              "version": dotnet_version,
               "checksum": checksum,
-              "changelog": "v1.4.23: Filter unavailable YouTube search results before selection and improve search-result validation while retaining YoutubeExplode-first search and yt-dlp fallback.",
+              "changelog": f"{tag}: Jellyfin 12 release.",
               "targetAbi": "12.0.0.0",
-              "sourceUrl": "https://github.com/ccook45/Jellyfin.Plugin.AssignThemeSong/releases/download/v1.4.23/xThemeSong_v1.4.23.zip"
+              "sourceUrl": f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{tag}/xThemeSong_{tag}.zip"
           }
 
           for plugin in data:
-              plugin["owner"] = "ccook45"
+              plugin["owner"] = os.environ["GITHUB_REPOSITORY_OWNER"]
               versions = plugin.setdefault("versions", [])
-              versions[:] = [v for v in versions if v.get("version") != "1.4.23.0"]
+              versions[:] = [v for v in versions if v.get("version") != dotnet_version]
               versions.insert(0, entry)
 
           path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
           print(f"Manifest checksum: {checksum}")
           PY
-
-      - name: Commit manifest
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add manifest.json
-          if ! git diff --cached --quiet; then
-            git commit -m "Publish Jellyfin 12 manifest"
-            git push
-          fi

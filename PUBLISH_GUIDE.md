@@ -6,7 +6,19 @@ This guide explains how to publish a new version of the xThemeSong plugin when u
 
 ## Overview
 
-When publishing a new version, you need to update the version number in **3 files** and create a release on GitHub.
+Create and push a `v*` tag to publish a release. The Jellyfin 12 workflow derives the
+plugin version from the tag and updates `Jellyfin.Plugin.AssignThemeSong.csproj`,
+`meta.json`, and `manifest.json` before building.
+
+To publish a version, create and push a matching tag:
+
+```powershell
+git tag v1.4.24
+git push origin v1.4.24
+```
+
+The workflow converts `v1.4.24` to assembly version `1.4.24.0`, builds the
+plugin, creates or updates the GitHub release, and updates `manifest.json`.
 
 ### Files to Update:
 1. `Jellyfin.Plugin.AssignThemeSong.csproj` - Version numbers + package references
