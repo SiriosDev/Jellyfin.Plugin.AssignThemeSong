@@ -41,8 +41,23 @@ jobs:
         run: |
           TAG_MESSAGE=""
           if [[ "$(git cat-file -t "$TAG")" == "tag" ]]; then
-            TAG_MESSAGE="$(git cat-file tag "$TAG" | sed '1,/^$/d' | sed '/^-----BEGIN PGP SIGNATURE-----$/,$d' | sed '1{/^[[:space:]]*$/d;}')"
-            TAG_MESSAGE="$(printf '%s' "$TAG_MESSAGE" | sed -e 's/[[:space:]]*$//' -e 's/^[[:space:]]*$//')"
+            TAG_MESSAGE="$(
+              git cat-file tag "$TAG" | awk '
+                BEGIN { body = 0; count = 0 }
+                body {
+                  sub(/\r$/, "")
+                  if (/^-----BEGIN (PGP|SSH) SIGNATURE-----$/) { stop = 1 }
+                  if (!stop) { lines[++count] = $0 }
+                }
+                !body && /^$/ { body = 1 }
+                END {
+                  while (count > 0 && lines[count] ~ /^[[:space:]]*$/) { count-- }
+                  start = 1
+                  while (start <= count && lines[start] ~ /^[[:space:]]*$/) { start++ }
+                  for (i = start; i <= count; i++) { print lines[i] }
+                }
+              '
+            )"
           fi
 
           if [[ -n "$TAG_MESSAGE" ]]; then
