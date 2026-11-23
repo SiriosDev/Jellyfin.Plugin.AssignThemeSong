@@ -66,6 +66,9 @@ jobs:
           print(f"Plugin version: {dotnet_version}")
           PY
 
+          cp Jellyfin.Plugin.AssignThemeSong.csproj "$RUNNER_TEMP/Jellyfin.Plugin.AssignThemeSong.csproj"
+          cp meta.json "$RUNNER_TEMP/meta.json"
+
       - name: Build
         run: dotnet build Jellyfin.Plugin.AssignThemeSong.csproj --configuration Release
 
@@ -122,3 +125,25 @@ jobs:
           path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
           print(f"Manifest checksum: {checksum}")
           PY
+
+      - name: Persist version files
+        shell: bash
+        run: |
+          cp "$RUNNER_TEMP/Jellyfin.Plugin.AssignThemeSong.csproj" Jellyfin.Plugin.AssignThemeSong.csproj
+          cp "$RUNNER_TEMP/meta.json" meta.json
+          cp manifest.json "$RUNNER_TEMP/manifest.json"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin dev
+          git switch --detach origin/dev
+
+          cp "$RUNNER_TEMP/Jellyfin.Plugin.AssignThemeSong.csproj" Jellyfin.Plugin.AssignThemeSong.csproj
+          cp "$RUNNER_TEMP/meta.json" meta.json
+          cp "$RUNNER_TEMP/manifest.json" manifest.json
+
+          git add Jellyfin.Plugin.AssignThemeSong.csproj meta.json manifest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish $TAG version $VERSION"
+            git push origin HEAD:dev
+          fi
