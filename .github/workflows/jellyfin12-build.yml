@@ -135,8 +135,8 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin dev
-          git switch --detach origin/dev
+          git fetch origin main
+          git switch --detach origin/main
 
           cp "$RUNNER_TEMP/Jellyfin.Plugin.AssignThemeSong.csproj" Jellyfin.Plugin.AssignThemeSong.csproj
           cp "$RUNNER_TEMP/meta.json" meta.json
@@ -145,5 +145,5 @@ jobs:
           git add Jellyfin.Plugin.AssignThemeSong.csproj meta.json manifest.json
           if ! git diff --cached --quiet; then
             git commit -m "Publish $TAG version $VERSION"
-            git push origin HEAD:dev
+            git push origin HEAD:main
           fi
