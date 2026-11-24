@@ -22,6 +22,12 @@ namespace Jellyfin.Plugin.xThemeSong.Models
         public string Title { get; set; } = string.Empty;
 
         /// <summary>
+        /// Gets or sets the production year, when available.
+        /// </summary>
+        [JsonPropertyName("year")]
+        public int? Year { get; set; }
+
+        /// <summary>
         /// Gets or sets the media type (Movie/Series).
         /// </summary>
         [JsonPropertyName("type")]

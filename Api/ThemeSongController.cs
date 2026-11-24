@@ -647,6 +647,7 @@ namespace Jellyfin.Plugin.xThemeSong.Api
                     {
                         ItemId = item.Id.ToString("N"),
                         Title = item.Name,
+                        Year = item.ProductionYear,
                         Type = item is Movie ? "Movie" : "Series",
                         LibraryName = libraryName,
                         HasThemeSong = hasThemeSong,
