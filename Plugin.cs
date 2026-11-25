@@ -47,7 +47,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         Instance = this;
         _appPaths = applicationPaths;
         _logger = logger!; // Null-forgiving operator - logger is required by DI
-        
+
         try
         {
             _logger.LogDebug("xThemeSong: Plugin constructor started - WITH File Transformation registration");
@@ -108,7 +108,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                 _logger.LogWarning("xThemeSong: No </body> tag found in index.html for direct injection");
                 return;
             }
-            
+
             content = content.Insert(bodyClosing, scriptElement);
             File.WriteAllText(indexPath, content);
             _logger.LogInformation("xThemeSong: Successfully performed direct script injection into index.html");
@@ -118,7 +118,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             _logger.LogError(ex, "xThemeSong: Failed to perform direct script injection");
         }
     }
-    
+
     /// <summary>
     /// Attempts to register transformation with File Transformation plugin using reflection.
     /// </summary>
@@ -201,7 +201,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         try
         {
             Instance?._logger?.LogInformation("xThemeSong: TransformIndexHtmlCallback invoked!");
-            
+
             var content = payload?.Contents ?? string.Empty;
 
             if (string.IsNullOrEmpty(content))
@@ -210,7 +210,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                 return content;
             }
 
-            Instance?._logger?.LogDebug("xThemeSong: Content length: {Length}, BasePath: '{BasePath}', Version: '{Version}'", 
+            Instance?._logger?.LogDebug("xThemeSong: Content length: {Length}, BasePath: '{BasePath}', Version: '{Version}'",
                 content.Length, _transformBasePath, _transformVersion);
 
             // Transform the content
@@ -313,7 +313,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             {
                 var content = File.ReadAllText(indexPath);
                 string scriptReplacePattern = "<script plugin=\"xThemeSong\".*?></script>";
-                
+
                 if (Regex.IsMatch(content, scriptReplacePattern))
                 {
                     content = Regex.Replace(content, scriptReplacePattern, string.Empty);
@@ -331,13 +331,14 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     /// <inheritdoc />
     public IEnumerable<PluginPageInfo> GetPages()
     {
-        return
-        [
-            new PluginPageInfo
-            {
-                Name = Name,  // "xThemeSong" - Admin config page
-                EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.configPage.html", GetType().Namespace)
-            }
-        ];
+        string? prefix = GetType().Namespace;
+
+        yield return new PluginPageInfo
+        {
+            Name = Name,
+            EnableInMainMenu = true,
+            EmbeddedResourcePath = $"{prefix}.Configuration.configPage.html",
+            MenuIcon = "music_note"
+        };
     }
 }
