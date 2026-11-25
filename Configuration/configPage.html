@@ -728,31 +728,37 @@
 
                 function showImportResults(result) {
                     var resultsDiv = document.getElementById('importResults');
+                    var totalThemes = result.totalThemes ?? result.TotalThemes ?? 0;
+                    var imported = result.imported ?? result.Imported ?? 0;
+                    var skipped = result.skipped ?? result.Skipped ?? 0;
+                    var failed = result.failed ?? result.Failed ?? 0;
+                    var conflicts = result.conflicts || result.Conflicts || [];
+                    var errors = result.errors || result.Errors || [];
                     
                     var html = '<h4 style="margin-top: 0; color: #00a4dc;">Import Results</h4>';
                     html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 1em;">';
-                    html += '<div><strong>Total:</strong> ' + result.totalThemes + '</div>';
-                    html += '<div style="color: #4caf50;"><strong>Imported:</strong> ' + result.imported + '</div>';
-                    html += '<div style="color: #ff9800;"><strong>Skipped:</strong> ' + result.skipped + '</div>';
-                    html += '<div style="color: #f44336;"><strong>Failed:</strong> ' + result.failed + '</div>';
+                    html += '<div><strong>Total:</strong> ' + totalThemes + '</div>';
+                    html += '<div style="color: #4caf50;"><strong>Imported:</strong> ' + imported + '</div>';
+                    html += '<div style="color: #ff9800;"><strong>Skipped:</strong> ' + skipped + '</div>';
+                    html += '<div style="color: #f44336;"><strong>Failed:</strong> ' + failed + '</div>';
                     html += '</div>';
                     
-                    if (result.conflicts && result.conflicts.length > 0) {
+                    if (conflicts.length > 0) {
                         html += '<h5 style="color: #ff9800; margin-bottom: 0.5em;">Conflicts:</h5>';
                         html += '<ul style="margin: 0; padding-left: 1.5em; max-height: 200px; overflow-y: auto;">';
-                        result.conflicts.forEach(function(conflict) {
+                        conflicts.forEach(function(conflict) {
                             html += '<li style="margin-bottom: 0.5em;">';
-                            html += '<strong>' + escapeHtml(conflict.itemName) + '</strong>: ';
-                            html += conflict.reason + ' - <em>' + conflict.action + '</em>';
+                            html += '<strong>' + escapeHtml(conflict.itemName || conflict.ItemName || '') + '</strong>: ';
+                            html += (conflict.reason || conflict.Reason || '') + ' - <em>' + (conflict.action || conflict.Action || '') + '</em>';
                             html += '</li>';
                         });
                         html += '</ul>';
                     }
                     
-                    if (result.errors && result.errors.length > 0) {
+                    if (errors.length > 0) {
                         html += '<h5 style="color: #f44336; margin-top: 1em; margin-bottom: 0.5em;">Errors:</h5>';
                         html += '<ul style="margin: 0; padding-left: 1.5em; max-height: 200px; overflow-y: auto;">';
-                        result.errors.forEach(function(error) {
+                        errors.forEach(function(error) {
                             html += '<li style="margin-bottom: 0.5em; color: #f44336;">' + escapeHtml(error) + '</li>';
                         });
                         html += '</ul>';
@@ -761,8 +767,8 @@
                     resultsDiv.innerHTML = html;
                     resultsDiv.style.display = 'block';
                     
-                    if (result.imported > 0) {
-                        Dashboard.alert('Import completed! ' + result.imported + ' theme(s) imported successfully.');
+                    if (imported > 0) {
+                        Dashboard.alert('Import completed! ' + imported + ' theme(s) imported successfully.');
                     }
                 }
             })();

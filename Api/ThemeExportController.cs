@@ -64,7 +64,10 @@ namespace Jellyfin.Plugin.xThemeSong.Api
                 };
 
                 _logger.LogInformation("Exported {Count} themes to JSON", themes.Count);
-                return Ok(exportData);
+                return new JsonResult(exportData, new JsonSerializerOptions(JsonSerializerDefaults.Web)
+                {
+                    WriteIndented = true
+                });
             }
             catch (Exception ex)
             {
