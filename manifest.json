@@ -9,6 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/ccook45/Jellyfin.Plugin.AssignThemeSong/main/images/icon.png",
     "versions": [
       {
+        "version": "1.4.27.0",
+        "checksum": "58FA1C8C3B086B2A27C1746276569EF1",
+        "changelog": "- Exporting Backup and Migration json indented instead of one line\n- Fixing Import Result to show the correct number of imported items",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/SiriosDev/Jellyfin.Plugin.AssignThemeSong/releases/download/v1.4.27/xThemeSong_v1.4.27.zip"
+      },
+      {
         "version": "1.4.26.0",
         "checksum": "DE54F7884E11FC3FD1E65E8964BBBD77",
         "changelog": "- Added configuration page in the left panel",
